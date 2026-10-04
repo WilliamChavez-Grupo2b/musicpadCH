@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MusicPadCH - Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+    <main class="page">
+        <div class="top-bar">
+            <a class="brand" href="inicio.html">MusicPadCH</a>
+            <nav class="nav-links">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="busqueda.html">Search</a>
+                <span>Hi, <span id="email-label"></span></span>
+                <button id="logout-button" class="button-ghost">Log out</button>
+            </nav>
+        </div>
+
+        <div class="dashboard-layout">
+            <section class="now-playing">
+                <img id="now-playing-thumb" width="64" height="48" alt="" hidden />
+                <div class="now-playing-info">
+                    <p id="now-playing-title">No song selected</p>
+                    <p id="now-playing-artist">Add a song from the search page to start.</p>
+                </div>
+            </section>
+            <section class="video-container">
+                <div id="youtube-player"></div>
+            </section>
+            <section class="progress-container">
+                <span id="current-time" class="time-label">0:00</span>
+                <input type="range" id="progress-bar" min="0" max="0" step="0.1" value="0"
+                    aria-label="Seek through the current song" />
+                <span id="duration" class="time-label">0:00</span>
+            </section>
+            <section class="player-controls">
+                <button id="previous-button" type="button">⏮ Previous</button>
+                <button id="rewind-button" type="button">⏪ Rewind 10s</button>
+                <button id="fast-forward" type="button">⏩ Forward 10s</button>
+                <button id="play-pause-button" type="button">▶ Play</button>
+                <button id="next-button" type="button">Next ⏭</button>
+            </section>
+
+            <div class="volume-control">
+                <label for="volume-input">Volume</label>
+                <input type="range" id="volume-input" min="0" max="100" value="50" />
+            </div>
+
+            <div class="split-layout">
+                <section class="playlist-column">
+                    <h2>Playlist (doubly linked list)</h2>
+                    <p id="empty-state">Your playlist is empty. Go to Search to add songs.</p>
+                    <ul id="playlist-list"></ul>
+                </section>
+
+                <section class="lyrics-column">
+                    <button id="lyrics-tab-button" class="tab-button" type="button" aria-controls="lyrics-panel" aria-expanded="false">Show Lyrics</button>
+                    <div id="lyrics-panel" class="lyrics-panel" hidden>
+                        <p class="lyrics-empty">Play a song to see its lyrics here.</p>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- Hidden placeholder used by the YouTube IFrame Player API -->
+        <div id="youtube-player" style="display:none;"></div>
+    </main>
+
+    <script type="module" src="dist/controllers/dashboardController.js"></script>
+</body>
+
+</html>

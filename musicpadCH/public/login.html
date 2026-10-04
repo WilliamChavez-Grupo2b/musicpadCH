@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MusicPadch - Log In</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <main class="page">
+        <div class="top-bar">
+            <a class="brand" href="inicio.html">MusicPadCH</a>
+        </div>
+
+        <section class="auth-card">
+            <h1 id="auth-title">Log In</h1>
+            <form id="login-form" novalidate>
+                <div class="form-field">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" autocomplete="email" maxlength="254" required />
+                </div>
+                <div class="form-field">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" autocomplete="current-password" required />
+                </div>
+                <button type="submit" class="button-primary" style="width: 100%;">Log In</button>
+            </form>
+            <form id="register-form" novalidate hidden>
+                <div class="form-field">
+                    <label for="register-email">Email</label>
+                    <input type="email" id="register-email" name="email" autocomplete="email" maxlength="254" required />
+                </div>
+                <div class="form-field">
+                    <label for="register-password">Password (at least 8 characters)</label>
+                    <input type="password" id="register-password" name="password" autocomplete="new-password" minlength="8" required />
+                </div>
+                <div class="form-field">
+                    <label for="confirm-password">Confirm password</label>
+                    <input type="password" id="confirm-password" name="confirmPassword" autocomplete="new-password" minlength="8" required />
+                </div>
+                <button type="submit" class="button-primary" style="width: 100%;">Create account</button>
+            </form>
+            <p id="error-message" class="error-message" role="alert" hidden></p>
+            <p id="auth-toggle">
+                <span id="auth-toggle-label">Don't have an account?</span>
+                <button id="auth-toggle-button" type="button" class="button-ghost">Register</button>
+            </p>
+        </section>
+    </main>
+
+    <script type="module" src="dist/controllers/loginController.js"></script>
+</body>
+</html>

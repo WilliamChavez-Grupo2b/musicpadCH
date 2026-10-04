@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MusicPadCH - Search</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <main class="page">
+        <div class="top-bar">
+            <a class="brand" href="inicio.html">MusicPadCH</a>
+            <nav class="nav-links">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="busqueda.html">Search</a>
+            </nav>
+        </div>
+
+        <h1>Search songs</h1>
+
+        <form id="search-form" class="search-form">
+            <input type="search" id="search-input" placeholder="Search a song or artist..." required />
+            <button type="submit" class="button-primary">Search</button>
+        </form>
+
+        <div class="position-field">
+            <label for="position-input">Position for "Add at position" (1 = first song):</label>
+            <input type="number" id="position-input" min="1" value="1" />
+        </div>
+
+        <p id="status-message" role="status" aria-live="polite"></p>
+
+        <ul id="results-list"></ul>
+    </main>
+
+    <script type="module" src="dist/controllers/searchController.js"></script>
+</body>
+</html>
