@@ -17,12 +17,12 @@ The server reads its configuration from `.env` using `dotenv`. Start the server 
 | Variable | Purpose | Local default |
 | --- | --- | --- |
 | `PORT` | HTTP port for the Express server. | `8000` |
-| `DB_HOST` | MySQL server hostname. | `127.0.0.1` |
+| `DB_HOST` | MySQL server hostname. | `private` |
 | `DB_PORT` | MySQL server port. | `3306` |
 | `DB_USER` | MySQL username. | `root` |
-| `DB_PASSWORD` | MySQL password. Leave empty for the included local Docker database. | Empty |
-| `DB_NAME` | Database used for accounts and playlists. | `usuariosmusicpad` |
-| `YOUTUBE_API_KEY` | Server-side YouTube Data API v3 key used for music search. | Set your own key |
+| `DB_PASSWORD` | MySQL password. Leave empty for the included local Docker database. | private |
+| `DB_NAME` | Database used for accounts and playlists. | `private` |
+| `YOUTUBE_API_KEY` | Server-side YouTube Data API v3 key used for music search. | private |
 
 For the included local MySQL setup, run `docker compose up -d db`; the database service allows an empty root password and initializes the `usuariosmusicpad` schema. Set `YOUTUBE_API_KEY` to a valid key to enable search. The key stays on the server and is not sent to the browser.
 
