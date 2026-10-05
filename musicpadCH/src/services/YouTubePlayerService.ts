@@ -78,7 +78,15 @@ export class YouTubePlayerService {
         this.player = new YT.Player(this.elementId, {
             height: "360",
             width: "640",
-            playerVars: { playsinline: 1 , controls: 0, disablekb: 1, modestbranding: 1,iv_load_policy:3,cc_load_policy:0,   rel: 0, fs: 0},
+            playerVars: {
+                playsinline: 1,
+                controls: 0,
+                disablekb: 1,
+                iv_load_policy: 3,
+                cc_load_policy: 0,
+                rel: 0,
+                fs: 0,
+            },
             events: {
                 onReady: () => {
                     this.ready = true;

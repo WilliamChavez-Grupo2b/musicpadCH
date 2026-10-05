@@ -88,6 +88,8 @@ function renderPlaylist(tracks, current) {
                 <p class="playlist-artist">${track.artist}</p>
             </div>
             <div class="playlist-actions">
+                <button type="button" class="reorder-handle" aria-label="Drag ${track.title} to reorder"
+                    title="Drag to reorder">↕</button>
                 <select class="position-select" title="Move song to position"></select>
                 <button type="button" class="play-button" data-id="${track.id}">▶</button>
                 <button type="button" class="remove-button" data-id="${track.id}">✕</button>
@@ -109,6 +111,79 @@ function renderPlaylist(tracks, current) {
             playlistStatus.textContent = `Moved "${track.title}" to position ${newPosition + 1}.`;
             playlist.moveToPosition(track.id, newPosition);
         });
+        const reorderHandle = item.querySelector(".reorder-handle");
+        reorderHandle.addEventListener("keydown", (event) => {
+            if (event.key !== "ArrowUp" && event.key !== "ArrowDown")
+                return;
+            event.preventDefault();
+            const nextIndex = index + (event.key === "ArrowUp" ? -1 : 1);
+            if (nextIndex < 0 || nextIndex >= tracks.length)
+                return;
+            playlistStatus.textContent = `Moved "${track.title}" to position ${nextIndex + 1}.`;
+            playlist.moveToPosition(track.id, nextIndex);
+        });
+        let activePointer = null;
+        let pointerDragStarted = false;
+        reorderHandle.addEventListener("pointerdown", (event) => {
+            if (event.pointerType === "mouse" && event.button !== 0)
+                return;
+            activePointer = { id: event.pointerId, x: event.clientX, y: event.clientY };
+            pointerDragStarted = false;
+            reorderHandle.setPointerCapture(event.pointerId);
+            event.preventDefault();
+        });
+        reorderHandle.addEventListener("pointermove", (event) => {
+            if (!activePointer || activePointer.id !== event.pointerId)
+                return;
+            if (!pointerDragStarted && Math.hypot(event.clientX - activePointer.x, event.clientY - activePointer.y) < 6)
+                return;
+            pointerDragStarted = true;
+            item.classList.add("is-dragging");
+            playlistList.querySelectorAll(".is-drop-target").forEach((target) => {
+                target.classList.remove("is-drop-target");
+            });
+            const pointed = document.elementFromPoint(event.clientX, event.clientY);
+            const targetItem = pointed instanceof Element
+                ? pointed.closest(".playlist-item")
+                : null;
+            if (targetItem && targetItem !== item)
+                targetItem.classList.add("is-drop-target");
+        });
+        const finishPointerDrag = (event) => {
+            if (!activePointer || activePointer.id !== event.pointerId)
+                return;
+            if (pointerDragStarted && event.type === "pointerup") {
+                const pointed = document.elementFromPoint(event.clientX, event.clientY);
+                const targetItem = pointed instanceof Element
+                    ? pointed.closest(".playlist-item")
+                    : null;
+                if (targetItem && targetItem !== item && targetItem.dataset.trackId) {
+                    const targetBounds = targetItem.getBoundingClientRect();
+                    const insertAfter = event.clientY > targetBounds.top + targetBounds.height / 2;
+                    const targetIndex = tracks.findIndex((candidate) => candidate.id === targetItem.dataset.trackId);
+                    const draggedIndex = tracks.findIndex((candidate) => candidate.id === track.id);
+                    if (targetIndex >= 0 && draggedIndex >= 0) {
+                        const insertionIndex = targetIndex + (insertAfter ? 1 : 0);
+                        const newPosition = insertionIndex - (draggedIndex < insertionIndex ? 1 : 0);
+                        if (newPosition !== draggedIndex) {
+                            playlistStatus.textContent = `Moved "${track.title}" in the playlist.`;
+                            playlist.moveToPosition(track.id, newPosition);
+                        }
+                    }
+                }
+                else if (!targetItem && pointed && playlistList.contains(pointed)) {
+                    playlistStatus.textContent = `Moved "${track.title}" to the end of the playlist.`;
+                    playlist.moveToPosition(track.id, tracks.length - 1);
+                }
+            }
+            activePointer = null;
+            pointerDragStarted = false;
+            playlistList.querySelectorAll(".is-dragging, .is-drop-target").forEach((target) => {
+                target.classList.remove("is-dragging", "is-drop-target");
+            });
+        };
+        reorderHandle.addEventListener("pointerup", finishPointerDrag);
+        reorderHandle.addEventListener("pointercancel", finishPointerDrag);
         item.querySelector(".play-button").addEventListener("click", () => {
             player.playTrackById(track.id);
             isPlaying = true;
