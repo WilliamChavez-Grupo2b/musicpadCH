@@ -22,6 +22,7 @@ body {
     background: var(--background);
     color: var(--text-primary);
     min-height: 100vh;
+    overflow-x: hidden;
 }
 
 img {
@@ -83,9 +84,19 @@ a {
     color: var(--text-secondary);
 }
 
+button,
+input {
+    font: inherit;
+}
+
 button {
     cursor: pointer;
     font-family: inherit;
+}
+
+.button-primary,
+.button-ghost {
+    min-height: 44px;
 }
 
 .button-primary {
@@ -387,9 +398,14 @@ button {
 }
 
 @media (max-width: 640px) {
+    .page {
+        padding: 20px 14px 64px;
+    }
+
     .top-bar {
         flex-direction: column;
         align-items: flex-start;
+        gap: 12px;
     }
 
     .brand {
@@ -398,7 +414,7 @@ button {
 
     .nav-links {
         width: 100%;
-        justify-content: flex-start;
+        justify-content: space-between;
         gap: 10px 14px;
     }
 
@@ -408,12 +424,17 @@ button {
     }
 
     .auth-card {
-        margin: 32px auto;
+        margin: 24px auto;
         padding: 24px 20px;
     }
 
     .hero {
         margin-top: 48px;
+    }
+
+    .hero h1 {
+        font-size: clamp(2rem, 10vw, 3rem);
+        line-height: 1.1;
     }
 
     .search-form {
@@ -426,7 +447,8 @@ button {
 
     .position-field {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
+        gap: 8px;
     }
 
     .position-field input {
@@ -436,6 +458,7 @@ button {
     .result-item,
     .playlist-item {
         flex-wrap: wrap;
+        align-items: flex-start;
     }
 
     .result-actions {
@@ -449,13 +472,19 @@ button {
     }
 
     .player-controls {
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(120px, 1fr));
         gap: 12px;
     }
 
     .player-controls button {
-        flex: 1 1 calc(50% - 12px);
-        min-width: 120px;
+        width: 100%;
+        min-width: 0;
+    }
+
+    #play-pause-button {
+        grid-column: 1 / -1;
+        width: 100%;
     }
 
     .volume-control {
