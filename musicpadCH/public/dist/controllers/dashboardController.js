@@ -87,9 +87,28 @@ function renderPlaylist(tracks, current) {
                 <p class="playlist-title">${track.title}</p>
                 <p class="playlist-artist">${track.artist}</p>
             </div>
-            <button type="button" class="play-button" data-id="${track.id}">▶</button>
-            <button type="button" class="remove-button" data-id="${track.id}">✕</button>
+            <div class="playlist-actions">
+                <select class="position-select" title="Move song to position"></select>
+                <button type="button" class="play-button" data-id="${track.id}">▶</button>
+                <button type="button" class="remove-button" data-id="${track.id}">✕</button>
+            </div>
         `;
+        const positionSelect = item.querySelector(".position-select");
+        positionSelect.setAttribute("aria-label", `Move ${track.title} to position`);
+        tracks.forEach((_, positionIndex) => {
+            const option = document.createElement("option");
+            option.value = String(positionIndex);
+            option.textContent = `Position ${positionIndex + 1}`;
+            option.selected = positionIndex === index;
+            positionSelect.appendChild(option);
+        });
+        positionSelect.addEventListener("change", () => {
+            const newPosition = Number(positionSelect.value);
+            if (newPosition === index)
+                return;
+            playlistStatus.textContent = `Moved "${track.title}" to position ${newPosition + 1}.`;
+            playlist.moveToPosition(track.id, newPosition);
+        });
         item.querySelector(".play-button").addEventListener("click", () => {
             player.playTrackById(track.id);
             isPlaying = true;

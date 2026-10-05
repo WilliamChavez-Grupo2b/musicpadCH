@@ -466,6 +466,18 @@ button {
         justify-content: flex-end;
     }
 
+    .playlist-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .position-select {
+        flex: 1;
+        max-width: none;
+        min-height: 44px;
+        font-size: 14px;
+    }
+
     .now-playing {
         flex-direction: column;
         align-items: flex-start;
@@ -638,6 +650,24 @@ button {
 .playlist-info {
     flex: 1;
     min-width: 0;
+}
+
+.playlist-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.position-select {
+    min-height: 36px;
+    max-width: 140px;
+    padding: 6px 8px;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    background: #2a2a2a;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 12px;
 }
 
 .play-button,
