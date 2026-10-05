@@ -124,6 +124,130 @@ app.post("/api/auth/login", async (request, response) => {
 });
 
 // ---------------------------------------------------------------------------
+// User playlists (require MySQL)
+// ---------------------------------------------------------------------------
+
+function playlistEmail(value) {
+    const email = normalizeEmail(value);
+    return isValidEmail(email) ? email : "";
+}
+
+function validPlaylistTrack(track) {
+    return track
+        && typeof track.id === "string"
+        && track.id.length > 0
+        && track.id.length <= 128
+        && typeof track.title === "string"
+        && track.title.length <= 500
+        && typeof track.artist === "string"
+        && track.artist.length <= 500
+        && typeof track.thumbnailUrl === "string"
+        && track.thumbnailUrl.length <= 2048;
+}
+
+app.get("/api/playlist", async (request, response) => {
+    if (!(await checkDatabase())) {
+        response.status(503).json({ error: "The database is not available right now." });
+        return;
+    }
+
+    const email = playlistEmail(request.query.email);
+    if (!email) {
+        response.status(400).json({ error: "A valid email address is required." });
+        return;
+    }
+
+    try {
+        const [rows] = await pool.execute(
+            "SELECT track_id, title, artist, thumbnail_url FROM playlist " +
+            "WHERE user_email = ? ORDER BY position ASC, id ASC",
+            [email],
+        );
+        response.json(rows.map((row) => ({
+            id: row.track_id,
+            title: row.title,
+            artist: row.artist,
+            thumbnailUrl: row.thumbnail_url,
+        })));
+    } catch (error) {
+        console.error("[playlist] Loading playlist failed:", error);
+        response.status(500).json({ error: "Unable to load the playlist." });
+    }
+});
+
+app.put("/api/playlist", async (request, response) => {
+    if (!(await checkDatabase())) {
+        response.status(503).json({ error: "The database is not available right now." });
+        return;
+    }
+
+    const email = playlistEmail(request.body?.email);
+    const tracks = request.body?.tracks;
+    if (!email || !Array.isArray(tracks) || tracks.length > 1000
+        || tracks.some((track) => !validPlaylistTrack(track))
+        || new Set(tracks.map((track) => track.id)).size !== tracks.length) {
+        response.status(400).json({ error: "A valid email and playlist track list are required." });
+        return;
+    }
+
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        if (tracks.length > 0) {
+            const values = tracks.map((track, index) => [
+                email,
+                track.id,
+                track.title,
+                track.artist,
+                track.thumbnailUrl,
+                index + 1,
+            ]);
+            const placeholders = values.map(
+                () => "(?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+            ).join(", ");
+            await connection.execute(
+                "INSERT INTO playlist " +
+                "(user_email, track_id, title, artist, thumbnail_url, position, added_at, modified_at) VALUES " +
+                placeholders +
+                " ON DUPLICATE KEY UPDATE title = VALUES(title), artist = VALUES(artist), " +
+                "thumbnail_url = VALUES(thumbnail_url), position = VALUES(position), " +
+                "modified_at = CURRENT_TIMESTAMP",
+                values.flat(),
+            );
+
+            const trackIds = tracks.map((track) => track.id);
+            const trackPlaceholders = trackIds.map(() => "?").join(", ");
+            await connection.execute(
+                `DELETE FROM playlist WHERE user_email = ? AND track_id NOT IN (${trackPlaceholders})`,
+                [email, ...trackIds],
+            );
+        } else {
+            await connection.execute(
+                "DELETE FROM playlist WHERE user_email = ?",
+                [email],
+            );
+        }
+
+        await connection.commit();
+        response.json({ saved: tracks.length });
+    } catch (error) {
+        if (connection) {
+            try {
+                await connection.rollback();
+            } catch (rollbackError) {
+                console.error("[playlist] Rolling back playlist save failed:", rollbackError);
+            }
+        }
+        console.error("[playlist] Saving playlist failed:", error);
+        response.status(500).json({ error: "Unable to save the playlist." });
+    } finally {
+        connection?.release();
+    }
+});
+
+// ---------------------------------------------------------------------------
 // YouTube search (does NOT require MySQL — works even if the DB is down)
 // ---------------------------------------------------------------------------
 

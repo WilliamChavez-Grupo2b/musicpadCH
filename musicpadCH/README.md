@@ -21,9 +21,13 @@ The server reads its configuration from `.env` using `dotenv`. Start the server 
 | `DB_PORT` | MySQL server port. | `3306` |
 | `DB_USER` | MySQL username. | `root` |
 | `DB_PASSWORD` | MySQL password. Leave empty for the included local Docker database. | Empty |
-| `DB_NAME` | Database used for accounts. | `usuariosmusicpad` |
+| `DB_NAME` | Database used for accounts and playlists. | `usuariosmusicpad` |
 | `YOUTUBE_API_KEY` | Server-side YouTube Data API v3 key used for music search. | Set your own key |
 
 For the included local MySQL setup, run `docker compose up -d db`; the database service allows an empty root password and initializes the `usuariosmusicpad` schema. Set `YOUTUBE_API_KEY` to a valid key to enable search. The key stays on the server and is not sent to the browser.
+
+## Playlist database
+
+Each account's playlist is loaded from and saved to the `playlist` table in the configured `DB_NAME` database. Run `database/init.sql` to create the required table and indexes. For an existing table, it must have these columns: `id`, `user_email`, `track_id`, `title`, `artist`, `thumbnail_url`, `position`, `added_at`, and `modified_at`. The `(user_email, track_id)` pair must be unique so playlist edits update existing rows instead of adding duplicates. Track order is stored in `position`; timestamps are maintained by MySQL. The currently selected track remains a browser preference for each account.
 
 Never put real credentials in `.env.example` or commit `.env`. The example contains placeholders and is safe to share; `.env` is excluded by Git.

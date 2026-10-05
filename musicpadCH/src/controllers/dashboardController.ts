@@ -11,17 +11,26 @@ const session = auth.requireSession();
 if (!session) {
     throw new Error("Redirecting to login...");
 }
+const accountEmail = session.email;
 
 const usernameLabel = document.querySelector<HTMLSpanElement>("#email-label")!;
-usernameLabel.textContent = session.email;
+usernameLabel.textContent = accountEmail;
 
+const playlistStatus = document.querySelector<HTMLParagraphElement>("#playlist-status")!;
 const playlist = new PlaylistManager();
 const ytPlayer = new YouTubePlayerService("youtube-player");
 const player = new PlayerController(playlist, ytPlayer);
 const lyricsService = new LyricsService();
 
-const snapshot = PlaylistStorage.load();
-playlist.hydrate(snapshot.tracks, snapshot.currentTrackId);
+try {
+    const snapshot = await PlaylistStorage.load(accountEmail);
+    playlist.hydrate(snapshot.tracks, snapshot.currentTrackId);
+} catch (error) {
+    playlistStatus.textContent = error instanceof Error
+        ? `Playlist unavailable: ${error.message}`
+        : "Playlist unavailable. Please try again.";
+    throw error;
+}
 
 const playlistList = document.querySelector<HTMLUListElement>("#playlist-list")!;
 const emptyState = document.querySelector<HTMLParagraphElement>("#empty-state")!;
@@ -64,7 +73,11 @@ function formatTime(totalSeconds: number): string {
 // ---------------------------------------------------------------------------
 
 function persist(tracks: Track[], current: Track | null): void {
-    PlaylistStorage.save(tracks, current?.id ?? null);
+    void PlaylistStorage.save(accountEmail, tracks, current?.id ?? null).catch((error: unknown) => {
+        playlistStatus.textContent = error instanceof Error
+            ? `Playlist save failed: ${error.message}`
+            : "Playlist save failed. Please try again.";
+    });
 }
 
 function renderPlaylist(tracks: Track[], current: Track | null): void {

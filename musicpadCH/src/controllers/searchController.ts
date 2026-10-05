@@ -5,20 +5,28 @@ import { PlaylistStorage } from "../utils/PlaylistStorage.js";
 import type { Track } from "../models/Track.js";
 
 const auth = new AuthService();
-if (!auth.requireSession()) {
+const session = auth.requireSession();
+if (!session) {
     throw new Error("Redirecting to login...");
 }
+const accountEmail = session.email;
 
 const youtube = new YouTubeService();
 const playlist = new PlaylistManager();
-
-const snapshot = PlaylistStorage.load();
-playlist.hydrate(snapshot.tracks, snapshot.currentTrackId);
+const statusMessage = document.querySelector<HTMLParagraphElement>("#status-message")!;
+try {
+    const snapshot = await PlaylistStorage.load(accountEmail);
+    playlist.hydrate(snapshot.tracks, snapshot.currentTrackId);
+} catch (error) {
+    statusMessage.textContent = error instanceof Error
+        ? `Playlist unavailable: ${error.message}`
+        : "Playlist unavailable. Please try again.";
+    throw error;
+}
 
 const searchForm = document.querySelector<HTMLFormElement>("#search-form")!;
 const searchInput = document.querySelector<HTMLInputElement>("#search-input")!;
 const resultsList = document.querySelector<HTMLUListElement>("#results-list")!;
-const statusMessage = document.querySelector<HTMLParagraphElement>("#status-message")!;
 const positionInput = document.querySelector<HTMLInputElement>("#position-input")!;
 
 function toTrack(result: YouTubeSearchResult): Track {
@@ -31,7 +39,15 @@ function toTrack(result: YouTubeSearchResult): Track {
 }
 
 function persist(): void {
-    PlaylistStorage.save(playlist.toArray(), playlist.getCurrentTrack()?.id ?? null);
+    void PlaylistStorage.save(
+        accountEmail,
+        playlist.toArray(),
+        playlist.getCurrentTrack()?.id ?? null,
+    ).catch((error: unknown) => {
+        statusMessage.textContent = error instanceof Error
+            ? `Playlist save failed: ${error.message}`
+            : "Playlist save failed. Please try again.";
+    });
 }
 
 function addTrack(result: YouTubeSearchResult, placement: "start" | "end" | "position"): void {
