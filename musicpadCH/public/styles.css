@@ -12,6 +12,10 @@
     box-sizing: border-box;
 }
 
+html {
+    scroll-behavior: smooth;
+}
+
 body {
     margin: 0;
     font-family: "Segoe UI", Helvetica, Arial, sans-serif;
@@ -20,12 +24,18 @@ body {
     min-height: 100vh;
 }
 
+img {
+    display: block;
+    max-width: 100%;
+}
+
 a {
     color: var(--accent);
 }
 
 .page {
     max-width: 960px;
+    width: min(100%, 960px);
     margin: 0 auto;
     padding: 32px 24px 96px;
 }
@@ -35,6 +45,7 @@ a {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 16px;
     margin-bottom: 32px;
 }
 
@@ -49,6 +60,7 @@ a {
     display: flex;
     align-items: center;
     gap: 16px;
+    flex-wrap: wrap;
 }
 
 .nav-links a {
@@ -59,6 +71,16 @@ a {
 
 .nav-links a:hover {
     color: var(--text-primary);
+}
+
+#auth-toggle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+    color: var(--text-secondary);
 }
 
 button {
@@ -337,9 +359,117 @@ button {
     gap: 24px;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 960px) {
+    .page {
+        padding: 24px 18px 72px;
+    }
+
+    .top-bar {
+        flex-wrap: wrap;
+        align-items: flex-start;
+    }
+
+    .nav-links {
+        justify-content: flex-end;
+    }
+
+    .hero {
+        margin-top: 64px;
+    }
+
+    .hero h1 {
+        font-size: clamp(2.2rem, 7vw, 3.5rem);
+    }
+
     .split-layout {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .top-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .brand {
+        font-size: 20px;
+    }
+
+    .nav-links {
+        width: 100%;
+        justify-content: flex-start;
+        gap: 10px 14px;
+    }
+
+    .nav-links a,
+    .nav-links span {
+        font-size: 13px;
+    }
+
+    .auth-card {
+        margin: 32px auto;
+        padding: 24px 20px;
+    }
+
+    .hero {
+        margin-top: 48px;
+    }
+
+    .search-form {
+        flex-direction: column;
+    }
+
+    .search-form button {
+        width: 100%;
+    }
+
+    .position-field {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .position-field input {
+        width: 100%;
+    }
+
+    .result-item,
+    .playlist-item {
+        flex-wrap: wrap;
+    }
+
+    .result-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .now-playing {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .player-controls {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .player-controls button {
+        flex: 1 1 calc(50% - 12px);
+        min-width: 120px;
+    }
+
+    .volume-control {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .volume-control input {
+        width: 100%;
+    }
+
+    #auth-toggle {
+        justify-content: flex-start;
+        text-align: left;
     }
 }
 
