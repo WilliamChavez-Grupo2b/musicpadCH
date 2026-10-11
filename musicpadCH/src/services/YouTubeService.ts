@@ -27,8 +27,9 @@ export class YouTubeService {
         const params = new URLSearchParams({
             q: trimmed,
             maxResults: String(maxResults),
+            mode,
         });
-        const response = await fetch(`/api/youtube/search?${params.toString()}mode=${mode}`);
+        const response = await fetch(`/api/youtube/search?${params.toString()}`);
 
         if (!response.ok) {
             const result = (await response.json()) as { error?: string };

@@ -12,13 +12,14 @@
  * Configure YOUTUBE_API_KEY in the server's .env file.
  */
 export class YouTubeService {
-    async searchSongs(query, maxResults = 10) {
+    async searchSongs(query, maxResults = 10, mode = "video") {
         const trimmed = query.trim();
         if (!trimmed)
             return [];
         const params = new URLSearchParams({
             q: trimmed,
             maxResults: String(maxResults),
+            mode,
         });
         const response = await fetch(`/api/youtube/search?${params.toString()}`);
         if (!response.ok) {

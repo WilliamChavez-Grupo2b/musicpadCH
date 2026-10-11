@@ -268,17 +268,17 @@ app.get("/api/youtube/search", async (request, response) => {
         return;
     }
 
+    const mode = request.query.mode === "audio" ? "audio" : "video";
+    const suffix = mode === "audio" ? "official audio" : "official music video";
     const url = new URL("https://www.googleapis.com/youtube/v3/search");
     url.search = new URLSearchParams({
         part: "snippet",
-        q: `${query} ${suffix}`, 
+        q: `${query} ${suffix}`,
         type: "video",
         videoCategoryId: "10",
         maxResults: String(requestedResults),
         key: process.env.YOUTUBE_API_KEY,
     }).toString();
-    const mode = request.query.mode === "audio" ? "audio" : "video";
-    const suffix = mode === "audio" ? "official audio" : "official music video";
 
     try {
         const youtubeResponse = await fetch(url);

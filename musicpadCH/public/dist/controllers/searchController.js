@@ -25,6 +25,7 @@ const searchForm = document.querySelector("#search-form");
 const searchInput = document.querySelector("#search-input");
 const resultsList = document.querySelector("#results-list");
 const positionInput = document.querySelector("#position-input");
+const modeSelect = document.querySelector("#search-mode");
 function toTrack(result) {
     return {
         id: result.videoId,
@@ -110,7 +111,7 @@ searchForm.addEventListener("submit", async (event) => {
     }
     statusMessage.textContent = "Searching...";
     try {
-        const results = await youtube.searchSongs(query);
+        const results = await youtube.searchSongs(query, 10, modeSelect.value);
         renderResults(results);
     }
     catch (error) {
