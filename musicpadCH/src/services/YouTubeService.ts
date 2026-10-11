@@ -18,9 +18,9 @@ export interface YouTubeSearchResult {
     channelTitle: string;
     thumbnailUrl: string;
 }
-
+export type SearchMode = "video" | "audio";
 export class YouTubeService {
-    async searchSongs(query: string, maxResults = 10): Promise<YouTubeSearchResult[]> {
+    async searchSongs(query: string, maxResults = 10, mode: SearchMode = "video"): Promise<YouTubeSearchResult[]> {
         const trimmed = query.trim();
         if (!trimmed) return [];
 
@@ -28,7 +28,7 @@ export class YouTubeService {
             q: trimmed,
             maxResults: String(maxResults),
         });
-        const response = await fetch(`/api/youtube/search?${params.toString()}`);
+        const response = await fetch(`/api/youtube/search?${params.toString()}mode=${mode}`);
 
         if (!response.ok) {
             const result = (await response.json()) as { error?: string };

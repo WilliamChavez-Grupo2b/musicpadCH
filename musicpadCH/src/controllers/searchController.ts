@@ -3,6 +3,7 @@ import { YouTubeService, YouTubeSearchResult } from "../services/YouTubeService.
 import { PlaylistManager } from "../services/PlaylistManager.js";
 import { PlaylistStorage } from "../utils/PlaylistStorage.js";
 import type { Track } from "../models/Track.js";
+import type { SearchMode } from "../services/YouTubeService.js";
 
 const auth = new AuthService();
 const session = auth.requireSession();
@@ -10,7 +11,6 @@ if (!session) {
     throw new Error("Redirecting to login...");
 }
 const accountEmail = session.email;
-
 const youtube = new YouTubeService();
 const playlist = new PlaylistManager();
 const statusMessage = document.querySelector<HTMLParagraphElement>("#status-message")!;
@@ -28,7 +28,7 @@ const searchForm = document.querySelector<HTMLFormElement>("#search-form")!;
 const searchInput = document.querySelector<HTMLInputElement>("#search-input")!;
 const resultsList = document.querySelector<HTMLUListElement>("#results-list")!;
 const positionInput = document.querySelector<HTMLInputElement>("#position-input")!;
-
+const modeSelect = document.querySelector<HTMLSelectElement>("#search-mode")!;  
 function toTrack(result: YouTubeSearchResult): Track {
     return {
         id: result.videoId,
@@ -133,7 +133,7 @@ searchForm.addEventListener("submit", async (event) => {
     statusMessage.textContent = "Searching...";
 
     try {
-        const results = await youtube.searchSongs(query);
+        const results = await youtube.searchSongs(query , 10 , modeSelect.value as SearchMode);
         renderResults(results);
     } catch (error) {
         statusMessage.textContent = error instanceof Error

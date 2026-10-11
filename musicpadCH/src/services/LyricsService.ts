@@ -35,9 +35,18 @@ export class LyricsService {
      * available" rather than treat this as an error).
      */
     async fetchSyncedLyrics(title: string, artist: string): Promise<LyricLine[] | null> {
+         function cleanTitle(title: string): string {
+           return title
+             .replace(/[\(\[][^\)\]]*(official|video|audio|lyrics?|hd|4k)[^\)\]]*[\)\]]/gi, "")
+             .replace(/\s{2,}/g, " ")
+            .trim();
+        }
+        function cleanArtist(artist: string): string {
+          return artist.replace(/\s*-\s*Topic$/i, "").replace(/VEVO$/i, "").trim();
+        }
         const params = new URLSearchParams({
-            track_name: title,
-            artist_name: artist,
+            track_name: cleanTitle(title),
+            artist_name: cleanArtist(artist),
         });
 
         let results: LrcLibResult[];
