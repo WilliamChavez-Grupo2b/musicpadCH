@@ -2,7 +2,7 @@ const path = require("node:path");
 const express = require("express");
 const mysql = require("mysql2/promise");
 const bcrypt = require("bcryptjs");
-require("dotenv").config();
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 const app = express();
 const port = Number(process.env.PORT ?? 8000);
