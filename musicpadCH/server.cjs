@@ -185,6 +185,29 @@ app.get("/api/playlist", async (request, response) => {
             ...(row.audio_url ? { audioUrl: row.audio_url } : {}),
         })));
     } catch (error) {
+        if (error.code === "ER_BAD_FIELD_ERROR") {
+            try {
+                console.warn(
+                    "[playlist] The database is missing audio playlist columns. " +
+                    "Returning legacy YouTube tracks; apply database/migrate-playlist-audio.sql.",
+                );
+                const [rows] = await pool.execute(
+                    "SELECT track_id, title, artist, thumbnail_url FROM playlist " +
+                    "WHERE user_email = ? ORDER BY position ASC, id ASC",
+                    [email],
+                );
+                response.json(rows.map((row) => ({
+                    id: row.track_id,
+                    source: "youtube",
+                    title: row.title,
+                    artist: row.artist,
+                    thumbnailUrl: row.thumbnail_url,
+                })));
+                return;
+            } catch (legacyError) {
+                console.error("[playlist] Loading legacy playlist failed:", legacyError);
+            }
+        }
         console.error("[playlist] Loading playlist failed:", error);
         response.status(500).json({ error: "Unable to load the playlist." });
     }

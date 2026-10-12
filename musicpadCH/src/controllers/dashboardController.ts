@@ -27,15 +27,9 @@ const lyricsService = new LyricsService();
 const visualizer = document.querySelector<HTMLDivElement>("#visualizer")!;
 const youtubeWrapper = document.querySelector<HTMLDivElement>("#youtube-wrapper")!;
 const stageCover = document.querySelector<HTMLImageElement>("#stage-cover")!;
-try {
-    const snapshot = await PlaylistStorage.load(accountEmail);
-    playlist.hydrate(snapshot.tracks, snapshot.currentTrackId);
-} catch (error) {
-    playlistStatus.textContent = error instanceof Error
-        ? `Playlist unavailable: ${error.message}`
-        : "Playlist unavailable. Please try again.";
-    throw error;
-}
+const snapshot = await PlaylistStorage.load(accountEmail);
+playlist.hydrate(snapshot.tracks, snapshot.currentTrackId);
+if (snapshot.warning) playlistStatus.textContent = snapshot.warning;
 const waves = new WaveBackground(document.querySelector<HTMLCanvasElement>("#wave-canvas")!);
 const playlistList = document.querySelector<HTMLUListElement>("#playlist-list")!;
 const emptyState = document.querySelector<HTMLParagraphElement>("#empty-state")!;
@@ -58,6 +52,7 @@ const lyricsTabButton = document.querySelector<HTMLButtonElement>("#lyrics-tab-b
 let isPlaying = false;
 let videoLoaded = false;
 let isDraggingProgress = false;
+let skipInitialPlaylistChange = true;
 let currentLyrics: LyricLine[] = [];
 let activeLyricIndex = -1;
 let lyricsRequestToken = 0; // avoids a slow, stale lyrics fetch overwriting a newer one
@@ -337,7 +332,11 @@ function updateTransportControls(duration = player.getDuration()): void {
 
 playlist.onChange((tracks, current) => {
     renderPlaylist(tracks, current);
-    persist(tracks, current);
+    if (skipInitialPlaylistChange) {
+        skipInitialPlaylistChange = false;
+    } else {
+        persist(tracks, current);
+    }
     updateTransportControls();
 });
 
