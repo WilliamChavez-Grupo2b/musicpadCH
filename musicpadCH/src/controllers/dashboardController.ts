@@ -5,6 +5,7 @@ import { PlayerController } from "../services/PlayerController.js";
 import { PlaylistStorage } from "../utils/PlaylistStorage.js";
 import { LyricsService, findActiveLyricIndex, type LyricLine } from "../services/LyricsService.js";
 import type { Track } from "../models/Track.js";
+import { WaveBackground } from "../services/WaveBackground.js";
 
 const auth = new AuthService();
 const session = auth.requireSession();
@@ -31,7 +32,7 @@ try {
         : "Playlist unavailable. Please try again.";
     throw error;
 }
-
+const waves = new WaveBackground(document.querySelector<HTMLCanvasElement>("#wave-canvas")!);
 const playlistList = document.querySelector<HTMLUListElement>("#playlist-list")!;
 const emptyState = document.querySelector<HTMLParagraphElement>("#empty-state")!;
 const nowPlayingTitle = document.querySelector<HTMLParagraphElement>("#now-playing-title")!;
@@ -288,6 +289,7 @@ function renderNowPlaying(current: Track | null): void {
 function updatePlayPauseLabel(): void {
     playPauseButton.textContent = isPlaying ? "⏸ Pause" : "▶ Play";
     visualizer.classList.toggle("is-playing", isPlaying);
+    waves.setActive(isPlaying);    
 }
 
 function setPlaybackState(playing: boolean): void {
