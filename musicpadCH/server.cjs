@@ -278,6 +278,8 @@ app.get("/api/youtube/search", async (request, response) => {
         videoCategoryId: "10",
         maxResults: String(requestedResults),
         key: process.env.YOUTUBE_API_KEY,
+        videoEmbeddable: "true",
+        videoSyndicated: "true",
     }).toString();
 
     try {

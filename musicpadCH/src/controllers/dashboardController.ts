@@ -21,7 +21,7 @@ const playlist = new PlaylistManager();
 const ytPlayer = new YouTubePlayerService("youtube-player");
 const player = new PlayerController(playlist, ytPlayer);
 const lyricsService = new LyricsService();
-
+const visualizer = document.querySelector<HTMLDivElement>("#visualizer")!;
 try {
     const snapshot = await PlaylistStorage.load(accountEmail);
     playlist.hydrate(snapshot.tracks, snapshot.currentTrackId);
@@ -287,6 +287,7 @@ function renderNowPlaying(current: Track | null): void {
 
 function updatePlayPauseLabel(): void {
     playPauseButton.textContent = isPlaying ? "⏸ Pause" : "▶ Play";
+    visualizer.classList.toggle("is-playing", isPlaying);
 }
 
 function setPlaybackState(playing: boolean): void {
