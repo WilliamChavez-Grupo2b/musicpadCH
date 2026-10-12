@@ -1,6 +1,7 @@
 import { AuthService } from "../services/AuthService.js";
 import { PlaylistManager } from "../services/PlaylistManager.js";
 import { YouTubePlayerService } from "../services/YouTubePlayerService.js";
+import { AudioPlayerService } from "../services/AudioPlayerService.js";
 import { PlayerController } from "../services/PlayerController.js";
 import { PlaylistStorage } from "../utils/PlaylistStorage.js";
 import { LyricsService, findActiveLyricIndex, type LyricLine } from "../services/LyricsService.js";
@@ -20,9 +21,12 @@ usernameLabel.textContent = accountEmail;
 const playlistStatus = document.querySelector<HTMLParagraphElement>("#playlist-status")!;
 const playlist = new PlaylistManager();
 const ytPlayer = new YouTubePlayerService("youtube-player");
-const player = new PlayerController(playlist, ytPlayer);
+const audioPlayer = new AudioPlayerService();
+const player = new PlayerController(playlist, ytPlayer, audioPlayer);
 const lyricsService = new LyricsService();
 const visualizer = document.querySelector<HTMLDivElement>("#visualizer")!;
+const youtubeWrapper = document.querySelector<HTMLDivElement>("#youtube-wrapper")!;
+const stageCover = document.querySelector<HTMLImageElement>("#stage-cover")!;
 try {
     const snapshot = await PlaylistStorage.load(accountEmail);
     playlist.hydrate(snapshot.tracks, snapshot.currentTrackId);
@@ -94,22 +98,48 @@ function renderPlaylist(tracks: Track[], current: Track | null): void {
 
         const connector = index === 0 ? "" : "↔";
 
-        item.innerHTML = `
-            <span class="connector">${connector}</span>
-            <img src="${track.thumbnailUrl}" alt="${track.title} thumbnail" width="40" height="30" />
-            <div class="playlist-info">
-                <p class="playlist-title">${track.title}</p>
-                <p class="playlist-artist">${track.artist}</p>
-            </div>
-            <div class="playlist-actions">
-                <button type="button" class="reorder-handle" aria-label="Drag ${track.title} to reorder"
-                    title="Drag to reorder">↕</button>
-                <select class="position-select" title="Move song to position"></select>
-                <button type="button" class="play-button" data-id="${track.id}">▶</button>
-                <button type="button" class="remove-button" data-id="${track.id}">✕</button>
-            </div>
-        `;
-        const positionSelect = item.querySelector<HTMLSelectElement>(".position-select")!;
+        const connectorElement = document.createElement("span");
+        connectorElement.className = "connector";
+        connectorElement.textContent = connector;
+        const thumbnail = document.createElement("img");
+        thumbnail.src = track.thumbnailUrl;
+        thumbnail.alt = `${track.title} thumbnail`;
+        thumbnail.width = 40;
+        thumbnail.height = 30;
+
+        const info = document.createElement("div");
+        info.className = "playlist-info";
+        const title = document.createElement("p");
+        title.className = "playlist-title";
+        title.textContent = track.title;
+        const artist = document.createElement("p");
+        artist.className = "playlist-artist";
+        artist.textContent = track.artist;
+        info.append(title, artist);
+
+        const actions = document.createElement("div");
+        actions.className = "playlist-actions";
+        const reorderHandle = document.createElement("button");
+        reorderHandle.type = "button";
+        reorderHandle.className = "reorder-handle";
+        reorderHandle.setAttribute("aria-label", `Drag ${track.title} to reorder`);
+        reorderHandle.title = "Drag to reorder";
+        reorderHandle.textContent = "↕";
+        const positionSelect = document.createElement("select");
+        positionSelect.className = "position-select";
+        positionSelect.title = "Move song to position";
+        const playButton = document.createElement("button");
+        playButton.type = "button";
+        playButton.className = "play-button";
+        playButton.dataset.id = track.id;
+        playButton.textContent = "▶";
+        const removeButton = document.createElement("button");
+        removeButton.type = "button";
+        removeButton.className = "remove-button";
+        removeButton.dataset.id = track.id;
+        removeButton.textContent = "✕";
+        actions.append(reorderHandle, positionSelect, playButton, removeButton);
+        item.append(connectorElement, thumbnail, info, actions);
         positionSelect.setAttribute("aria-label", `Move ${track.title} to position`);
         tracks.forEach((_, positionIndex) => {
             const option = document.createElement("option");
@@ -124,7 +154,6 @@ function renderPlaylist(tracks: Track[], current: Track | null): void {
             playlistStatus.textContent = `Moved "${track.title}" to position ${newPosition + 1}.`;
             playlist.moveToPosition(track.id, newPosition);
         });
-        const reorderHandle = item.querySelector<HTMLButtonElement>(".reorder-handle")!;
         reorderHandle.addEventListener("keydown", (event) => {
             if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
             event.preventDefault();
@@ -375,9 +404,14 @@ function renderLyricsPanel(): void {
         return;
     }
 
-    lyricsPanel.innerHTML = currentLyrics
-        .map((line, index) => `<p class="lyric-line" data-index="${index}">${line.text || "♪"}</p>`)
-        .join("");
+    const lines = currentLyrics.map((line, index) => {
+        const element = document.createElement("p");
+        element.className = "lyric-line";
+        element.dataset.index = String(index);
+        element.textContent = line.text || "♪";
+        return element;
+    });
+    lyricsPanel.replaceChildren(...lines);
 }
 
 function updateActiveLyric(currentTime: number): void {
@@ -424,6 +458,10 @@ async function loadLyricsFor(track: Track): Promise<void> {
 // unrelated edits like adding or removing a song.
 
 player.onTrackChange((track) => {
+    const isJamendo = track.source === "jamendo";
+    youtubeWrapper.hidden = isJamendo;
+    stageCover.hidden = !isJamendo;
+    if (isJamendo) stageCover.src = track.thumbnailUrl;
     videoLoaded = true;
     setPlaybackState(true);
     resetProgressUI();
@@ -474,6 +512,7 @@ lyricsTabButton.addEventListener("click", () => {
     lyricsTabButton.textContent = isExpanded ? "Hide Lyrics" : "Show Lyrics";
     lyricsTabButton.classList.toggle("is-active", isExpanded);
 });
+player.setVolume(Number(volumeInput.value) / 100);
 
 updatePlayPauseLabel();
 resetProgressUI();

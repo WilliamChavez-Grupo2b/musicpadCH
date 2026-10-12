@@ -11,6 +11,8 @@ export class PlaylistStorage {
             title: track.title,
             artist: track.artist,
             thumbnailUrl: track.thumbnailUrl,
+            source: track.source ?? "youtube",
+            ...(track.audioUrl ? { audioUrl: track.audioUrl } : {}),
         }));
         const currentTrackId = localStorage.getItem(this.currentTrackKey(email));
         return {

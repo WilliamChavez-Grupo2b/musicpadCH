@@ -58,6 +58,10 @@ export class YouTubePlayerService {
                     if (event.data === YT.PlayerState.ENDED)
                         this.emit("ended");
                 },
+                onError: (event) => {
+                    console.error("[youtube] Playback failed with player error:", event.data);
+                    this.emit("error");
+                },
             },
         });
     }
@@ -76,9 +80,13 @@ export class YouTubePlayerService {
         this.player.loadVideoById(videoId);
     }
     pause() {
+        if (!this.ready || !this.player)
+            return;
         this.player?.pauseVideo();
     }
     resume() {
+        if (!this.ready || !this.player)
+            return;
         this.player?.playVideo();
     }
     forward(seconds) {
@@ -93,6 +101,8 @@ export class YouTubePlayerService {
         this.player?.seekTo(newTime, true);
     }
     seekTo(seconds) {
+        if (!this.ready || !this.player)
+            return;
         this.player?.seekTo(seconds, true);
     }
     setVolume(volume0to1) {

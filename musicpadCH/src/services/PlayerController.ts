@@ -1,6 +1,7 @@
 import { PlaylistManager } from "./PlaylistManager.js";
 import { YouTubePlayerService } from "./YouTubePlayerService.js";
-import type { Track } from "../models/Track.js";
+import { AudioPlayerService } from "./AudioPlayerService.js";
+import type { Track, TrackSource } from "../models/Track.js";
 
 export type TrackChangeListener = (track: Track) => void;
 
@@ -21,14 +22,36 @@ export type TrackChangeListener = (track: Track) => void;
  */
 export class PlayerController {
     private readonly trackChangeListeners = new Set<TrackChangeListener>();
+    private activeSource: TrackSource | null = null;
+    private consecutiveErrors = 0;
 
     constructor(
         private readonly playlist: PlaylistManager,
-        private readonly ytPlayer: YouTubePlayerService
+        private readonly ytPlayer: YouTubePlayerService,
+        private readonly audioPlayer: AudioPlayerService
     ) {
         this.ytPlayer.onEvent((event) => {
+            if (this.activeSource !== "youtube") return;
             if (event === "ended") this.next();
+            if (event === "play") this.consecutiveErrors = 0;
+            if (event === "error") this.handlePlaybackError("youtube");
         });
+        this.audioPlayer.onEvent((event) => {
+            if (this.activeSource !== "jamendo") return;
+            if (event === "ended") this.next();
+            if (event === "play") this.consecutiveErrors = 0;
+            if (event === "error") this.handlePlaybackError("jamendo");
+        });
+    }
+
+    private handlePlaybackError(source: TrackSource): void {
+        if (this.activeSource !== source) return;
+        this.consecutiveErrors++;
+        if (this.consecutiveErrors < this.playlist.size) {
+            this.next();
+        } else {
+            this.activePlayer.pause();
+        }
     }
 
     /** Subscribes to "a new track just started loading". Returns an unsubscribe function. */
@@ -39,59 +62,68 @@ export class PlayerController {
 
     private loadTrack(track: Track | null): void {
         if (!track) return;
-        this.ytPlayer.playVideo(track.id);
+        const source = track.source ?? (track.audioUrl ? "jamendo" : "youtube");
+        if (source === "jamendo") {
+            if (!track.audioUrl) {
+                console.error(`[player] Jamendo track "${track.title}" has no audio URL.`);
+                return;
+            }
+            this.activeSource = source;
+            this.ytPlayer.pause();
+            this.audioPlayer.play(track.audioUrl);
+        } else {
+            this.activeSource = source;
+            this.audioPlayer.pause();
+            this.ytPlayer.playVideo(track.id);
+        }
         this.trackChangeListeners.forEach((listener) => listener(track));
     }
 
-    playCurrent(): void {
-        this.loadTrack(this.playlist.getCurrentTrack());
+    private get activePlayer(): YouTubePlayerService | AudioPlayerService {
+        return this.activeSource === "jamendo" ? this.audioPlayer : this.ytPlayer;
     }
 
+    playCurrent(): void { this.loadTrack(this.playlist.getCurrentTrack()); }
+    next(): void { this.loadTrack(this.playlist.playNext()); }
+    previous(): void { this.loadTrack(this.playlist.playPrevious()); }
+    playTrackById(trackId: string): void { this.loadTrack(this.playlist.setCurrentById(trackId)); }
+
     pause(): void {
-        this.ytPlayer.pause();
+        this.activePlayer.pause();
     }
 
     resume(): void {
-        this.ytPlayer.resume();
+        this.activePlayer.resume();
     }
 
-    next(): void {
-        this.loadTrack(this.playlist.playNext());
-    }
-
-    previous(): void {
-        this.loadTrack(this.playlist.playPrevious());
-    }
-
-    playTrackById(trackId: string): void {
-        this.loadTrack(this.playlist.setCurrentById(trackId));
-    }
     fastForward(seconds: number): void {
-        const currentTime = this.ytPlayer.getCurrentTime();
-        const duration = this.ytPlayer.getDuration();
-        const newTime = Math.min(currentTime + seconds, duration);
-        this.ytPlayer.seekTo(newTime);
+        if (!Number.isFinite(seconds) || seconds <= 0) return;
+        const target = Math.min(
+            this.activePlayer.getCurrentTime() + seconds,
+            this.activePlayer.getDuration(),
+        );
+        this.activePlayer.seekTo(target);
     }
-    
+
     rewind(seconds: number): void {
-        const currentTime = this.ytPlayer.getCurrentTime();
-        const newTime = Math.max(currentTime - seconds, 0);
-        this.ytPlayer.seekTo(newTime);
+        if (!Number.isFinite(seconds) || seconds <= 0) return;
+        this.activePlayer.seekTo(Math.max(this.activePlayer.getCurrentTime() - seconds, 0));
+    }
+
+    seekTo(seconds: number): void {
+        this.activePlayer.seekTo(seconds);
+    }
+
+    getCurrentTime(): number {
+        return this.activePlayer.getCurrentTime();
+    }
+
+    getDuration(): number {
+        return this.activePlayer.getDuration();
     }
 
     setVolume(volume0to1: number): void {
         this.ytPlayer.setVolume(volume0to1);
-    }
-
-    seekTo(seconds: number): void {
-        this.ytPlayer.seekTo(seconds);
-    }
-
-    getCurrentTime(): number {
-        return this.ytPlayer.getCurrentTime();
-    }
-
-    getDuration(): number {
-        return this.ytPlayer.getDuration();
+        this.audioPlayer.setVolume(volume0to1);
     }
 }

@@ -304,6 +304,8 @@ button {
     aspect-ratio: 16 / 9;
     overflow: hidden;
 }
+#youtube-wrapper, #stage-cover { width: 100%; height: 100%; }
+#stage-cover { object-fit: cover; border-radius: 8px; }
 
 .video-stage {
     position: relative;

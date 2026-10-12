@@ -1,4 +1,5 @@
 import type { Track } from "../models/Track.js";
+import type { TrackSource } from "../models/Track.js";
 
 interface PlaylistSnapshot {
     tracks: Track[];
@@ -10,6 +11,8 @@ interface StoredTrack {
     title: string;
     artist: string;
     thumbnailUrl: string;
+    source?: TrackSource;
+    audioUrl?: string | null;
 }
 
 export class PlaylistStorage {
@@ -29,6 +32,8 @@ export class PlaylistStorage {
             title: track.title,
             artist: track.artist,
             thumbnailUrl: track.thumbnailUrl,
+            source: track.source ?? "youtube",
+            ...(track.audioUrl ? { audioUrl: track.audioUrl } : {}),
         }));
         const currentTrackId = localStorage.getItem(this.currentTrackKey(email));
 

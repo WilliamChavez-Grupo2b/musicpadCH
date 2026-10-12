@@ -1,15 +1,17 @@
 import { AuthService } from "../services/AuthService.js";
+import { MusicService } from "../services/MusicService.js";
 import { YouTubeService, YouTubeSearchResult } from "../services/YouTubeService.js";
 import { PlaylistManager } from "../services/PlaylistManager.js";
 import { PlaylistStorage } from "../utils/PlaylistStorage.js";
-import type { Track } from "../models/Track.js";
-import type { SearchMode } from "../services/YouTubeService.js";
+import type { Track, TrackSource } from "../models/Track.js";
 
 const auth = new AuthService();
 const session = auth.requireSession();
 if (!session) {
     throw new Error("Redirecting to login...");
 }
+const music = new MusicService();
+const sourceSelect = document.querySelector<HTMLSelectElement>("#search-mode")!;
 const accountEmail = session.email;
 const youtube = new YouTubeService();
 const playlist = new PlaylistManager();
@@ -28,13 +30,13 @@ const searchForm = document.querySelector<HTMLFormElement>("#search-form")!;
 const searchInput = document.querySelector<HTMLInputElement>("#search-input")!;
 const resultsList = document.querySelector<HTMLUListElement>("#results-list")!;
 const positionInput = document.querySelector<HTMLInputElement>("#position-input")!;
-const modeSelect = document.querySelector<HTMLSelectElement>("#search-mode")!;  
 function toTrack(result: YouTubeSearchResult): Track {
     return {
         id: result.videoId,
         title: result.title,
         artist: result.channelTitle,
         thumbnailUrl: result.thumbnailUrl,
+        source: "youtube",
     };
 }
 
@@ -50,10 +52,9 @@ function persist(): void {
     });
 }
 
-function addTrack(result: YouTubeSearchResult, placement: "start" | "end" | "position"): void {
-    const track = toTrack(result);
+function addTrack(track: Track, placement: "start" | "end" | "position"): void {
     if (playlist.contains(track.id)) {
-        statusMessage.textContent = `"${result.title}" has already been added to the playlist.`;
+        statusMessage.textContent = `"${track.title}" has already been added to the playlist.`;
         return;
     }
 
@@ -65,21 +66,21 @@ function addTrack(result: YouTubeSearchResult, placement: "start" | "end" | "pos
         }
         playlist.addAtPosition(position, track);
         persist();
-        statusMessage.textContent = `"${result.title}" added at position ${position}.`;
+        statusMessage.textContent = `"${track.title}" added at position ${position}.`;
         return;
     }
 
     if (placement === "start") {
         playlist.addAtStart(track);
-        statusMessage.textContent = `"${result.title}" added to the start of the playlist.`;
+        statusMessage.textContent = `"${track.title}" added to the start of the playlist.`;
     } else {
         playlist.addAtEnd(track);
-        statusMessage.textContent = `"${result.title}" added to the end of the playlist.`;
+        statusMessage.textContent = `"${track.title}" added to the end of the playlist.`;
     }
     persist();
 }
 
-function renderResults(results: YouTubeSearchResult[]): void {
+function renderResults(results: Track[]): void {
     resultsList.innerHTML = "";
 
     if (results.length === 0) {
@@ -92,18 +93,38 @@ function renderResults(results: YouTubeSearchResult[]): void {
     for (const result of results) {
         const item = document.createElement("li");
         item.className = "result-item";
-        item.innerHTML = `
-            <img src="${result.thumbnailUrl}" alt="${result.title} thumbnail" width="60" height="45" />
-            <div class="result-info">
-                <p class="result-title">${result.title}</p>
-                <p class="result-artist">${result.channelTitle}</p>
-            </div>
-            <div class="result-actions">
-                <button type="button" data-action="start">Add to start</button>
-                <button type="button" data-action="end">Add to end</button>
-                <button type="button" data-action="position">Add at position</button>
-            </div>
-        `;
+        const thumbnail = document.createElement("img");
+        thumbnail.src = result.thumbnailUrl;
+        thumbnail.alt = `${result.title} thumbnail`;
+        thumbnail.width = 60;
+        thumbnail.height = 45;
+
+        const info = document.createElement("div");
+        info.className = "result-info";
+        const title = document.createElement("p");
+        title.className = "result-title";
+        title.textContent = result.title;
+        const artist = document.createElement("p");
+        artist.className = "result-artist";
+        artist.textContent = result.artist;
+        info.append(title, artist);
+
+        const actions = document.createElement("div");
+        actions.className = "result-actions";
+        const startButton = document.createElement("button");
+        startButton.type = "button";
+        startButton.dataset.action = "start";
+        startButton.textContent = "Add to start";
+        const endButton = document.createElement("button");
+        endButton.type = "button";
+        endButton.dataset.action = "end";
+        endButton.textContent = "Add to end";
+        const positionButton = document.createElement("button");
+        positionButton.type = "button";
+        positionButton.dataset.action = "position";
+        positionButton.textContent = "Add at position";
+        actions.append(startButton, endButton, positionButton);
+        item.append(thumbnail, info, actions);
 
         item.querySelector('[data-action="start"]')!.addEventListener("click", () => {
             addTrack(result, "start");
@@ -133,7 +154,15 @@ searchForm.addEventListener("submit", async (event) => {
     statusMessage.textContent = "Searching...";
 
     try {
-        const results = await youtube.searchSongs(query , 10 , modeSelect.value as SearchMode);
+        const selectedSource = sourceSelect.value;
+        if (selectedSource !== "youtube" && selectedSource !== "jamendo") {
+            throw new Error("Select a valid music source.");
+        }
+        const source: TrackSource = selectedSource;
+        const results: Track[] =
+                source === "jamendo"
+                 ? await music.searchTracks(query)
+                 : (await youtube.searchSongs(query)).map(toTrack);
         renderResults(results);
     } catch (error) {
         statusMessage.textContent = error instanceof Error

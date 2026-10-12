@@ -33,6 +33,7 @@ declare namespace YT {
         events?: {
             onReady?: () => void;
             onStateChange?: (event: { data: number }) => void;
+            onError?: (event: { data: number }) => void;
         };
     }
 
@@ -43,7 +44,7 @@ declare namespace YT {
     };
 }
 
-export type PlayerEvent = "play" | "pause" | "ended";
+export type PlayerEvent = "play" | "pause" | "ended" | "error";
 export type PlayerEventListener = (event: PlayerEvent) => void;
 
 const IFRAME_API_SRC = "https://www.youtube.com/iframe_api";
@@ -100,6 +101,10 @@ export class YouTubePlayerService {
                     if (event.data === YT.PlayerState.PAUSED) this.emit("pause");
                     if (event.data === YT.PlayerState.ENDED) this.emit("ended");
                 },
+                onError: (event) => {
+                    console.error("[youtube] Playback failed with player error:", event.data);
+                    this.emit("error");
+                },
             },
         });
     }
@@ -122,10 +127,12 @@ export class YouTubePlayerService {
     }
 
     pause(): void {
+     if (!this.ready || !this.player) return;
         this.player?.pauseVideo();
     }
 
     resume(): void {
+     if (!this.ready || !this.player) return;
         this.player?.playVideo();
     }
     forward(seconds: number): void {
@@ -141,6 +148,7 @@ export class YouTubePlayerService {
         this.player?.seekTo(newTime, true);
     }
     seekTo(seconds: number): void {
+        if (!this.ready || !this.player) return;
         this.player?.seekTo(seconds, true);
     }
 

@@ -37,7 +37,7 @@ async function checkDatabase() {
     return databaseAvailable;
 }
 
-app.use(express.json({ limit: "10kb" }));
+app.use(express.json({ limit: "5mb" }));
 
 function normalizeEmail(value) {
     return typeof value === "string" ? value.trim().toLowerCase() : "";
@@ -133,7 +133,7 @@ function playlistEmail(value) {
 }
 
 function validPlaylistTrack(track) {
-    return track
+    if (!(track
         && typeof track.id === "string"
         && track.id.length > 0
         && track.id.length <= 128
@@ -142,7 +142,20 @@ function validPlaylistTrack(track) {
         && typeof track.artist === "string"
         && track.artist.length <= 500
         && typeof track.thumbnailUrl === "string"
-        && track.thumbnailUrl.length <= 2048;
+        && track.thumbnailUrl.length <= 2048)) {
+        return false;
+    }
+
+    const source = track.source ?? "youtube";
+    if (source !== "youtube" && source !== "jamendo") return false;
+    if (track.audioUrl == null) return source === "youtube";
+    if (typeof track.audioUrl !== "string" || track.audioUrl.length > 2048) return false;
+
+    try {
+        return source === "jamendo" && new URL(track.audioUrl).protocol === "https:";
+    } catch {
+        return false;
+    }
 }
 
 app.get("/api/playlist", async (request, response) => {
@@ -159,15 +172,17 @@ app.get("/api/playlist", async (request, response) => {
 
     try {
         const [rows] = await pool.execute(
-            "SELECT track_id, title, artist, thumbnail_url FROM playlist " +
+            "SELECT track_id, source, title, artist, thumbnail_url, audio_url FROM playlist " +
             "WHERE user_email = ? ORDER BY position ASC, id ASC",
             [email],
         );
         response.json(rows.map((row) => ({
             id: row.track_id,
+            source: row.source,
             title: row.title,
             artist: row.artist,
             thumbnailUrl: row.thumbnail_url,
+            ...(row.audio_url ? { audioUrl: row.audio_url } : {}),
         })));
     } catch (error) {
         console.error("[playlist] Loading playlist failed:", error);
@@ -202,17 +217,20 @@ app.put("/api/playlist", async (request, response) => {
                 track.title,
                 track.artist,
                 track.thumbnailUrl,
+                track.source ?? "youtube",
+                track.audioUrl ?? null,
                 index + 1,
             ]);
             const placeholders = values.map(
-                () => "(?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                () => "(?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
             ).join(", ");
             await connection.execute(
                 "INSERT INTO playlist " +
-                "(user_email, track_id, title, artist, thumbnail_url, position, added_at, modified_at) VALUES " +
+                "(user_email, track_id, title, artist, thumbnail_url, source, audio_url, position, added_at, modified_at) VALUES " +
                 placeholders +
                 " ON DUPLICATE KEY UPDATE title = VALUES(title), artist = VALUES(artist), " +
-                "thumbnail_url = VALUES(thumbnail_url), position = VALUES(position), " +
+                "thumbnail_url = VALUES(thumbnail_url), source = VALUES(source), " +
+                "audio_url = VALUES(audio_url), position = VALUES(position), " +
                 "modified_at = CURRENT_TIMESTAMP",
                 values.flat(),
             );
@@ -317,6 +335,55 @@ app.get("/api/youtube/search", async (request, response) => {
     }
 });
 
+app.get("/api/music/search", async (request, response) => {
+    const query = typeof request.query.q === "string" ? request.query.q.trim() : "";
+    if (!query || query.length > 200) {
+        response.status(400).json({ error: "Search query must be between 1 and 200 characters." });
+        return;
+    }
+    if (!process.env.JAMENDO_CLIENT_ID) {
+        response.status(503).json({ error: "Set JAMENDO_CLIENT_ID in the server .env file to enable Jamendo search." });
+        return;
+    }
+
+    const url = new URL("https://api.jamendo.com/v3.0/tracks/");
+    url.search = new URLSearchParams({
+        client_id: process.env.JAMENDO_CLIENT_ID,
+        format: "json",
+        limit: "20",
+        namesearch: query,
+        audioformat: "mp31",
+    }).toString();
+
+    try {
+        const jamendoResponse = await fetch(url);
+        const data = await jamendoResponse.json();
+        if (!jamendoResponse.ok || data?.headers?.status !== "success") {
+            console.error("[jamendo] Search failed:", data?.headers?.error_message ?? `HTTP ${jamendoResponse.status}`);
+            response.status(502).json({ error: "Jamendo search is temporarily unavailable." });
+            return;
+        }
+
+        const results = (Array.isArray(data.results) ? data.results : [])
+            .filter((item) => typeof item.id === "string"
+                && typeof item.name === "string"
+                && typeof item.artist_name === "string"
+                && typeof item.audio === "string"
+                && item.audio.startsWith("https://"))
+            .map((item) => ({
+                id: item.id,
+                title: item.name,
+                artist: item.artist_name,
+                thumbnailUrl: item.album_image ?? item.image ?? "",
+                audioUrl: item.audio,
+            }));
+        response.json(results);
+    } catch (error) {
+        console.error("[jamendo] Search request failed:", error);
+        response.status(502).json({ error: "Jamendo search is temporarily unavailable." });
+    }
+});
+
 // ---------------------------------------------------------------------------
 // Health check — quick way to see what's working without digging through logs
 // ---------------------------------------------------------------------------
@@ -326,6 +393,7 @@ app.get("/api/health", async (_request, response) => {
         server: "ok",
         database: (await checkDatabase()) ? "connected" : "unavailable",
         youtubeApiKeyConfigured: Boolean(process.env.YOUTUBE_API_KEY),
+        jamendoClientIdConfigured: Boolean(process.env.JAMENDO_CLIENT_ID),
     });
 });
 
