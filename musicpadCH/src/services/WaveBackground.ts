@@ -40,8 +40,8 @@ export class WaveBackground {
 
         ctx.clearRect(0, 0, w, h);
         ctx.fillStyle = this.color;
-        ctx.globalAlpha = 0.35;
-
+        ctx.globalAlpha = 0.50;
+        
         const slot = w / bars;
         const barWidth = slot * 0.6;
 

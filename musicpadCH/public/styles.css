@@ -310,7 +310,7 @@ button {
     width: 100%;
     max-width: 900px;
     margin: 0 auto 24px;
-    padding: 56px 0;          /* espacio para que las ondas se vean arriba y abajo */
+    padding: 100px 0;          /* espacio para que las ondas se vean arriba y abajo */
 }
 
 #wave-canvas {
