@@ -1,7 +1,6 @@
 import { AuthService } from "../services/AuthService.js";
 import { PlaylistManager } from "../services/PlaylistManager.js";
 import { YouTubePlayerService } from "../services/YouTubePlayerService.js";
-import { AudioPlayerService } from "../services/AudioPlayerService.js";
 import { PlayerController } from "../services/PlayerController.js";
 import { PlaylistStorage } from "../utils/PlaylistStorage.js";
 import { LyricsService, findActiveLyricIndex, type LyricLine } from "../services/LyricsService.js";
@@ -21,12 +20,9 @@ usernameLabel.textContent = accountEmail;
 const playlistStatus = document.querySelector<HTMLParagraphElement>("#playlist-status")!;
 const playlist = new PlaylistManager();
 const ytPlayer = new YouTubePlayerService("youtube-player");
-const audioPlayer = new AudioPlayerService();
-const player = new PlayerController(playlist, ytPlayer, audioPlayer);
+const player = new PlayerController(playlist, ytPlayer);
 const lyricsService = new LyricsService();
 const visualizer = document.querySelector<HTMLDivElement>("#visualizer")!;
-const youtubeWrapper = document.querySelector<HTMLDivElement>("#youtube-wrapper")!;
-const stageCover = document.querySelector<HTMLImageElement>("#stage-cover")!;
 const snapshot = await PlaylistStorage.load(accountEmail);
 playlist.hydrate(snapshot.tracks, snapshot.currentTrackId);
 if (snapshot.warning) playlistStatus.textContent = snapshot.warning;
@@ -457,10 +453,6 @@ async function loadLyricsFor(track: Track): Promise<void> {
 // unrelated edits like adding or removing a song.
 
 player.onTrackChange((track) => {
-    const isJamendo = track.source === "jamendo";
-    youtubeWrapper.hidden = isJamendo;
-    stageCover.hidden = !isJamendo;
-    if (isJamendo) stageCover.src = track.thumbnailUrl;
     videoLoaded = true;
     setPlaybackState(true);
     resetProgressUI();

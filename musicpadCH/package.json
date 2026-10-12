@@ -1,7 +1,7 @@
 {
   "name": "musicpad",
   "version": "1.0.0",
-  "description": "A Spotify-like music player built in TypeScript, using a doubly linked list for the playlist and the YouTube API for playback.",
+  "description": "A Spotify-like music player built in TypeScript, using a doubly linked list for the playlist, the YouTube Data API for search, and the official YouTube IFrame API for playback.",
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",

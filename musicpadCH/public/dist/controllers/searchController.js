@@ -1,5 +1,4 @@
 import { AuthService } from "../services/AuthService.js";
-import { MusicService } from "../services/MusicService.js";
 import { YouTubeService } from "../services/YouTubeService.js";
 import { PlaylistManager } from "../services/PlaylistManager.js";
 import { PlaylistStorage } from "../utils/PlaylistStorage.js";
@@ -8,8 +7,7 @@ const session = auth.requireSession();
 if (!session) {
     throw new Error("Redirecting to login...");
 }
-const music = new MusicService();
-const sourceSelect = document.querySelector("#search-mode");
+const searchModeSelect = document.querySelector("#search-mode");
 const accountEmail = session.email;
 const youtube = new YouTubeService();
 const playlist = new PlaylistManager();
@@ -131,14 +129,12 @@ searchForm.addEventListener("submit", async (event) => {
     }
     statusMessage.textContent = "Searching...";
     try {
-        const selectedSource = sourceSelect.value;
-        if (selectedSource !== "youtube" && selectedSource !== "jamendo") {
-            throw new Error("Select a valid music source.");
+        const selectedMode = searchModeSelect.value;
+        if (selectedMode !== "audio" && selectedMode !== "video") {
+            throw new Error("Select a valid YouTube search mode.");
         }
-        const source = selectedSource;
-        const results = source === "jamendo"
-            ? await music.searchTracks(query)
-            : (await youtube.searchSongs(query)).map(toTrack);
+        const mode = selectedMode;
+        const results = (await youtube.searchSongs(query, 10, mode)).map(toTrack);
         renderResults(results);
     }
     catch (error) {

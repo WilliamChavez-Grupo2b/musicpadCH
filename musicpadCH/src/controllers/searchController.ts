@@ -1,17 +1,15 @@
 import { AuthService } from "../services/AuthService.js";
-import { MusicService } from "../services/MusicService.js";
-import { YouTubeService, YouTubeSearchResult } from "../services/YouTubeService.js";
+import { YouTubeService, type SearchMode, type YouTubeSearchResult } from "../services/YouTubeService.js";
 import { PlaylistManager } from "../services/PlaylistManager.js";
 import { PlaylistStorage } from "../utils/PlaylistStorage.js";
-import type { Track, TrackSource } from "../models/Track.js";
+import type { Track } from "../models/Track.js";
 
 const auth = new AuthService();
 const session = auth.requireSession();
 if (!session) {
     throw new Error("Redirecting to login...");
 }
-const music = new MusicService();
-const sourceSelect = document.querySelector<HTMLSelectElement>("#search-mode")!;
+const searchModeSelect = document.querySelector<HTMLSelectElement>("#search-mode")!;
 const accountEmail = session.email;
 const youtube = new YouTubeService();
 const playlist = new PlaylistManager();
@@ -154,15 +152,12 @@ searchForm.addEventListener("submit", async (event) => {
     statusMessage.textContent = "Searching...";
 
     try {
-        const selectedSource = sourceSelect.value;
-        if (selectedSource !== "youtube" && selectedSource !== "jamendo") {
-            throw new Error("Select a valid music source.");
+        const selectedMode = searchModeSelect.value;
+        if (selectedMode !== "audio" && selectedMode !== "video") {
+            throw new Error("Select a valid YouTube search mode.");
         }
-        const source: TrackSource = selectedSource;
-        const results: Track[] =
-                source === "jamendo"
-                 ? await music.searchTracks(query)
-                 : (await youtube.searchSongs(query)).map(toTrack);
+        const mode: SearchMode = selectedMode;
+        const results: Track[] = (await youtube.searchSongs(query, 10, mode)).map(toTrack);
         renderResults(results);
     } catch (error) {
         statusMessage.textContent = error instanceof Error

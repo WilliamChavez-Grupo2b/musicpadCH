@@ -5,8 +5,7 @@ function isStoredTrack(value) {
         && "title" in value && typeof value.title === "string"
         && "artist" in value && typeof value.artist === "string"
         && "thumbnailUrl" in value && typeof value.thumbnailUrl === "string"
-        && (!("source" in value) || value.source === "youtube" || value.source === "jamendo")
-        && (!("audioUrl" in value) || value.audioUrl === null || typeof value.audioUrl === "string");
+        && (!("source" in value) || value.source === "youtube");
 }
 export class PlaylistStorage {
     static async load(email) {
@@ -22,16 +21,19 @@ export class PlaylistStorage {
                     : "Unable to load the playlist.";
                 throw new Error(message);
             }
-            if (!Array.isArray(result) || !result.every(isStoredTrack)) {
+            if (!Array.isArray(result)) {
                 throw new Error("The playlist response has an invalid format.");
             }
-            const tracks = result.map((track) => ({
+            const supportedTracks = result.filter(isStoredTrack);
+            if (supportedTracks.length !== result.length) {
+                console.warn("[playlist] Ignoring unsupported or invalid tracks from the server.");
+            }
+            const tracks = supportedTracks.map((track) => ({
                 id: track.id,
                 title: track.title,
                 artist: track.artist,
                 thumbnailUrl: track.thumbnailUrl,
                 source: track.source ?? "youtube",
-                ...(track.audioUrl ? { audioUrl: track.audioUrl } : {}),
             }));
             this.writeCachedTracks(email, tracks);
             return {
@@ -88,18 +90,23 @@ export class PlaylistStorage {
             return null;
         try {
             const tracks = JSON.parse(cached);
-            if (!Array.isArray(tracks) || !tracks.every(isStoredTrack)) {
+            if (!Array.isArray(tracks)) {
                 console.warn("[playlist] Ignoring invalid cached playlist data.");
                 return null;
             }
-            return tracks.map((track) => ({
+            const supportedTracks = tracks.filter(isStoredTrack);
+            if (supportedTracks.length !== tracks.length) {
+                console.warn("[playlist] Ignoring unsupported or invalid cached tracks.");
+            }
+            const normalizedTracks = supportedTracks.map((track) => ({
                 id: track.id,
                 title: track.title,
                 artist: track.artist,
                 thumbnailUrl: track.thumbnailUrl,
                 source: track.source ?? "youtube",
-                ...(track.audioUrl ? { audioUrl: track.audioUrl } : {}),
             }));
+            this.writeCachedTracks(email, normalizedTracks);
+            return normalizedTracks;
         }
         catch (error) {
             console.warn("[playlist] Could not read the cached playlist.", error);
